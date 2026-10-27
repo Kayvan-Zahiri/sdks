@@ -287,6 +287,33 @@ describe("Ratelimit Core Functionality", () => {
   });
 
   describe("Caching Behavior", () => {
+    test.each([0, 1])("does not reuse a cost-5 denial for cost %s", async (cost) => {
+      let apiCallCount = 0;
+      const reset = Date.now() + 60000;
+      const handler = http.post(
+        "http://localhost:3000/v2/ratelimit.limit",
+        () => {
+          apiCallCount++;
+          return HttpResponse.json(createSuccessResponse({
+            success: apiCallCount > 1,
+            remaining: apiCallCount === 1 ? 3 : 3 - cost,
+            reset,
+          }));
+        },
+      );
+      const { cleanup } = createTestServer([handler]);
+      cleanupFunctions.push(cleanup);
+      const rl = createTestRatelimit();
+
+      expect(await rl.limit("cost-sensitive-user", { cost: 5 })).toEqual({
+        success: false, limit: 10, remaining: 3, reset,
+      });
+      expect(await rl.limit("cost-sensitive-user", { cost })).toEqual({
+        success: true, limit: 10, remaining: 3 - cost, reset,
+      });
+      expect(apiCallCount).toBe(2);
+    });
+
     test("should cache ratelimited responses", async () => {
       let apiCallCount = 0;
 

@@ -192,7 +192,7 @@ export class Ratelimit implements Ratelimiter {
     duration: number,
     cost: number,
   ): Promise<RatelimitResponse> {
-    const cacheKey = `${this.config.namespace}:${identifier}:${limit}:${duration}`;
+    const cacheKey = `${this.config.namespace}:${identifier}:${limit}:${duration}:${cost}`;
     const naughty = this.cache.get(cacheKey);
     if (naughty) {
       if (naughty.reset > Date.now()) {
